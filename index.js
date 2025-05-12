@@ -27,6 +27,7 @@ function autofitColumns()
   }
   catch (e)
   {
+    console.log(e);
     showAlert("An error occurred: " + e.message);
   }
 }
@@ -80,11 +81,11 @@ function shrinkColumnToFit(table, colIndex, initialWidth = 500)
 {
   const column = table.columns.item(colIndex);
   column.autoGrow = false;
-  column.width = initialWidth;
+  column.width = initialWidth + "pt";
 
   const bestWidth = binarySearch(1, initialWidth, (trialWidth) =>
     {
-      column.width = trialWidth;
+      column.width = trialWidth + "pt";
       app.activeDocument.recompose();
 
       for (let rowIndex = 0; rowIndex < table.rows.length; rowIndex++)
@@ -98,5 +99,5 @@ function shrinkColumnToFit(table, colIndex, initialWidth = 500)
       return true;
     });
 
-  column.width = bestWidth;
+  column.width = bestWidth + "pt";
 }
