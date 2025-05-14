@@ -1,3 +1,7 @@
+// Right now, the algorithm iterates by row, overriding the prior column widths with each new row.
+// TODO Set binary search min to current tested min for parent colmn
+// TODO Handle spanning cells at the end, passing initial cell width as binary search min
+
 const { app } = require("indesign");
 
 module.exports =
