@@ -1,75 +1,59 @@
 const { app } = require("indesign");
 
 module.exports = {
-  commands: { autofitColumns: () => autofitColumns() } };
+  commands: { autofitColumns: () => autofitColumns() }
+};
 
-
-function autofitColumns()
-{
-  try
-  {
-    if (app.documents.length === 0)
-    {
+function autofitColumns() {
+  try {
+    if (app.documents.length === 0) {
       showAlert("No document open.");
+      return;
     }
-    else if (!isCellInTableSelected())
-    {
-      showAlert("Please select a cell inside a table.");
+
+    if (
+      !app.selection.length ||
+      typeof !app.selection[0].cells === "undefined" ||
+      app.selection[0].cells.length === 0
+    ) {
+      showAlert("Please select one or more table cells.");
+      return;
     }
-    else
-    {
-      const table = app.selection[0].parent;
-      for (let colIndex = 0; colIndex < table.columns.length; colIndex++)
-      {
-        shrinkColumnToFit(table, colIndex);
-      }
+
+    const selectedCells = app.selection[0].cells;
+    const cells = selectedCells.everyItem().getElements();
+
+    for (const cell of cells) {
+      autosizeCell(cell);
     }
-  }
-  catch (e)
-  {
+  } catch (e) {
     console.log(e);
     showAlert("An error occurred: " + e.message);
   }
 }
 
-
-function showAlert(message)
-{
+function showAlert(message) {
   const dialog = app.dialogs.add();
   const col = dialog.dialogColumns.add();
   const colText = col.staticTexts.add();
-  colText.staticLabel = message;;
-
+  colText.staticLabel = message;
   dialog.canCancel = false;
   dialog.show();
   dialog.destroy();
   return;
 }
 
-function isCellInTableSelected()
-{
-  const sel = app.selection;
-  return ( sel.length > 0 &&
-           sel[0].parent &&
-           sel[0].parent.constructor.name === "Table" );
-}
-
-function binarySearch(min, max, test)
-{
+function binarySearch(min, max, test) {
   let best = max;
 
-  while (min <= max)
-  {
+  while (min <= max) {
     const mid = Math.floor((min + max) / 2);
     const passed = test(mid);
 
-    if (passed)
-    {
+    if (passed) {
       best = mid;
       max = mid - 1;
-    }
-    else
-    {
+    } else {
       min = mid + 1;
     }
   }
@@ -77,27 +61,23 @@ function binarySearch(min, max, test)
   return best;
 }
 
-function shrinkColumnToFit(table, colIndex, initialWidth = 500)
-{
-  const column = table.columns.item(colIndex);
+function autosizeCell(cell, initialWidth = 500) {
+  const column = cell.parentColumn;
   column.autoGrow = false;
-  column.width = initialWidth + "pt";
 
-  const bestWidth = binarySearch(1, initialWidth, (trialWidth) =>
-    {
-      column.width = trialWidth + "pt";
-      app.activeDocument.recompose();
+  cell.width = initialWidth + "pt";
 
-      for (let rowIndex = 0; rowIndex < table.rows.length; rowIndex++)
-      {
-        const cell = table.rows.item(rowIndex).cells.item(colIndex);
-        if (cell.overflows)
-        {
-          return false;
-        }
-      }
-      return true;
-    });
+  // 3 is the minimum allowed for col width. Setting the minimum lower will result in an error.
+  const bestWidth = binarySearch(3, initialWidth, (trialWidth) => {
+    cell.width = trialWidth + "pt";
+    app.activeDocument.recompose();
 
-  column.width = bestWidth + "pt";
+    if (cell.overflows) {
+      return false;
+    }
+
+    return true;
+  });
+
+  cell.width = bestWidth + "pt";
 }
