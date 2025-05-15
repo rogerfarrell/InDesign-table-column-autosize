@@ -1,7 +1,3 @@
-// Right now, the algorithm iterates by row, overriding the prior column widths with each new row.
-// TODO Set binary search min to current tested min for parent colmn
-// TODO Handle spanning cells at the end, passing initial cell width as binary search min
-
 const { app } = require("indesign");
 
 module.exports =
@@ -9,10 +5,16 @@ module.exports =
     commands: { autofitColumns: () => autofitColumns() }
   };
 
+
+///////////////////////////////////////////////////////////////////////////
+// COMMANDS
+///////////////////////////////////////////////////////////////////////////
+
 function autofitColumns()
 {
   try
   {
+    console.log("command called");
     if (app.documents.length === 0)
     {
       showAlert("No document open.");
@@ -33,7 +35,7 @@ function autofitColumns()
     const selectedCells = app.selection[0].cells;
     const cells = selectedCells.everyItem().getElements();
 
-    for (const cell of cells) autosizeCell(cell);
+    autosizeCell(cells);
   }
   catch (e)
   {
@@ -41,6 +43,11 @@ function autofitColumns()
     showAlert("An error occurred: " + e.message);
   }
 }
+
+
+///////////////////////////////////////////////////////////////////////////
+// HELPER FUNCTIONS
+///////////////////////////////////////////////////////////////////////////
 
 function showAlert(message)
 {
@@ -56,6 +63,8 @@ function showAlert(message)
 
 function binarySearch(min, max, test)
 {
+  console.log(`binarySearch called, min: ${min} max ${max}`);
+
   let best = max;
 
   while (min <= max)
@@ -63,39 +72,101 @@ function binarySearch(min, max, test)
     const mid = Math.floor((min + max) / 2);
     const passed = test(mid);
 
-    if (passed)
-    {
-      best = mid;
-      max = mid - 1;
-    }
+    if (!passed)
+      { min = mid + 1; }
     else
-    {
-      min = mid + 1;
-    }
+      { best = mid; max = mid - 1; }
   }
 
+  console.log("best: " + best);
   return best;
 }
 
-function autosizeCell(cell, initialWidth = 500)
+function isTrulyEmpty(cell)
 {
-  const column = cell.parentColumn;
-  column.autoGrow = false;
+    // cell.contents returns "" if all content is overflowed
+    return cell.contents == "" && !cell.overflows;
+}
 
-  cell.width = initialWidth + "pt";
+function autosizeCell(cells)
+{
+  console.log("autosizeCell called");
 
-  // 3 is the minimum allowed for col width. Setting the minimum lower will result in an error.
-  const bestWidth =
-    binarySearch( 3, initialWidth, (trialWidth) =>
-                                   {
-                                     cell.width = trialWidth + "pt";
-                                     app.activeDocument.recompose();
+  const startingMaxWidth = 500;
 
-                                     if (cell.overflows) return false;
+  let columns = [];
+  let spanningCells = [];
 
-                                     return true;
-                                   }
-  );
+  for (const cell of cells)
+  {
+    if ( cell.columnSpan > 1 )
+    {
+      spanningCells.push(cell);
+      continue;
+    }
 
-  cell.width = bestWidth + "pt";
+    console.log(`cell contents: ${cell.contents}`);
+
+    if ( isTrulyEmpty(cell) ) continue;
+
+    const parentColumn = cell.parentColumn;
+    parentColumn.autoGrow = false;
+
+    const matchedColumn = () =>
+      columns.find(column => parentColumn.index == column.index);
+
+    // 3 is the minimum allowed for col width.
+    // Setting the minimum lower will result in an error.
+    if ( !matchedColumn() ) columns.push( { index: parentColumn.index, minWidth: 3 } );
+
+    const startingMinWidth = matchedColumn().minWidth;
+    console.log(`matchedColumn().width: ${matchedColumn().minWidth}`);
+
+    cell.width = startingMaxWidth + "pt";
+
+    const bestWidth =
+      binarySearch(
+        startingMinWidth,
+        startingMaxWidth,
+        (trialWidth) =>
+          {
+            cell.width = trialWidth + "pt";
+            app.activeDocument.recompose();
+
+            if (cell.overflows) return false;
+
+            return true;
+          }
+      );
+
+    cell.width = bestWidth + "pt";
+    matchedColumn().minWidth = bestWidth;
+  }
+
+  for ( const spanningCell of spanningCells )
+  {
+    if ( isTrulyEmpty(spanningCell) ) continue;
+
+    const parentColumn = spanningCell.parentColumn;
+    parentColumn.autoGrow = false;
+
+    const startingMinWidth = spanningCell.width;
+
+    const bestWidth =
+      binarySearch(
+        startingMinWidth,
+        startingMaxWidth,
+        (trialWidth) =>
+          {
+            spanningCell.width = trialWidth + "pt";
+            app.activeDocument.recompose();
+
+            if (spanningCell.overflows) return false;
+
+            return true;
+          }
+      );
+
+    spanningCell.width = bestWidth + "pt";
+  }
 }
