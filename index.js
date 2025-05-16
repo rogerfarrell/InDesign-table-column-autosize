@@ -155,19 +155,27 @@ const autosizeCells =
       {
         const firstParentColumnIndex = spanningCell.parentColumn.index;
         const lastParentColumnIndex = (firstParentColumnIndex + spanningCell.columnSpan) - 1;
+        const lastParentColumnExists =
+          columns.some( (index) => index == lastParentColumnIndex );
         const inParentRange =
           (index) =>
             (index >= firstParentColumnIndex)
             && (index <= lastParentColumnIndex);
         // I pulled this out of the filter below to make it read easier.
 
-        const minWidth =
-          columns
-            .filter( (column) => inParentRange(column.index) )
-            .reduce( (sum, column) => sum + column.minWidth, 0 );
-        // minWidth is the sum of all columns spanned.
+        if ( !lastParentColumnExists )
+        {
+          const minWidth =
+            columns
+              .filter( (column) => inParentRange(column.index) )
+              .reduce( (sum, column) => sum + column.minWidth, 0 );
+          // minWidth is the sum of all columns spanned.
 
-        testCell(spanningCell, minWidth, maxWidth);
+          return testCell(spanningCell, minWidth, maxWidth);
+        }
+
+        const minWidth = spanningCell.width;
+        return testCell(spanningCell, minWidth, maxWidth);
       }
     );
   };
