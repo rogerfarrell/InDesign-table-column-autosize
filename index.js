@@ -116,7 +116,6 @@ const autosizeCells =
     // autoGrow must be false for cell contents to overflow predictably.
 
     const columnIndices = [...new Set( nonEmptyCells.map( cell => cell.parentColumn.index ) )];
-    console.log(`columnIndices: ${columnIndices}`);
     const columns = columnIndices.map( index => ({ index: index, minWidth: minWidth }) );
 
     const normalCells   = nonEmptyCells.filter( cell => cell.columnSpan == 1 );
@@ -169,13 +168,10 @@ const autosizeCells =
           {
             const parentColumnIsEmpty =
               !columns.some( (column) => parentColumnIndex == column.index );
-            console.log(parentColumnIsEmpty);
             const parentColumn =
               parentTable
                 .columns
                 .item(parentColumnIndex);
-            console.log(`parent column: ${parentColumn}`);
-            console.log(spanningCell.parent.constructor.name); // should be "Table"
 
             if ( parentColumnIsEmpty )
             {
