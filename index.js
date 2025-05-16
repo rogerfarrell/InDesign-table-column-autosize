@@ -94,24 +94,13 @@ const isTrulyEmpty =
       // cell.contents returns "" if all content is overflowed.
   };
 
-const testCell =
-  (cell, min, max) =>
-  {
-    const bestWidth =
-      binarySearch( min, max,
-        (trialWidth) =>
-        {
-          cell.width = trialWidth;
-          app.activeDocument.recompose();
-
-          if ( cell.overflows ) return false;
-                                return true;
-        }
-      );
-
-    cell.width = bestWidth;
-    // This is the final width of the cell.
-  };
+const getParentTable = (cell) => {
+  let parent = cell;
+  while (parent.constructor.name !== "Table") {
+    parent = parent.parent;
+  }
+  return parent;
+};
 
 const autosizeCells =
   (cells) =>
@@ -127,6 +116,7 @@ const autosizeCells =
     // autoGrow must be false for cell contents to overflow predictably.
 
     const columnIndices = [...new Set( nonEmptyCells.map( cell => cell.parentColumn.index ) )];
+    console.log(`columnIndices: ${columnIndices}`);
     const columns = columnIndices.map( index => ({ index: index, minWidth: minWidth }) );
 
     const normalCells   = nonEmptyCells.filter( cell => cell.columnSpan == 1 );
@@ -141,7 +131,20 @@ const autosizeCells =
           columns.find( column => column.index == normalCell.parentColumn.index );
         const minWidth = currentColumn.minWidth;
 
-        testCell(normalCell, minWidth, maxWidth);
+        const bestWidth =
+          binarySearch( minWidth, maxWidth,
+            (trialWidth) =>
+            {
+              normalCell.width = trialWidth;
+              app.activeDocument.recompose();
+
+              if ( normalCell.overflows ) return false;
+                                    return true;
+            }
+          );
+
+        normalCell.width = bestWidth;
+        // This is the final width of the cell.
 
         if ( normalCell.width >= currentColumn.minWidth )
         {
@@ -155,27 +158,64 @@ const autosizeCells =
       {
         const firstParentColumnIndex = spanningCell.parentColumn.index;
         const lastParentColumnIndex = (firstParentColumnIndex + spanningCell.columnSpan) - 1;
-        const lastParentColumnExists =
-          columns.some( (index) => index == lastParentColumnIndex );
-        const inParentRange =
-          (index) =>
-            (index >= firstParentColumnIndex)
-            && (index <= lastParentColumnIndex);
-        // I pulled this out of the filter below to make it read easier.
+        const parentColumnIndices =
+          Array.from(
+            { length: lastParentColumnIndex - firstParentColumnIndex + 1 },
+            (_, i) => firstParentColumnIndex + i);
+        const parentTable = getParentTable(spanningCell);
 
-        if ( !lastParentColumnExists )
-        {
-          const minWidth =
-            columns
-              .filter( (column) => inParentRange(column.index) )
-              .reduce( (sum, column) => sum + column.minWidth, 0 );
-          // minWidth is the sum of all columns spanned.
+        parentColumnIndices.forEach(
+          (parentColumnIndex) =>
+          {
+            const parentColumnIsEmpty =
+              !columns.some( (column) => parentColumnIndex == column.index );
+            console.log(parentColumnIsEmpty);
+            const parentColumn =
+              parentTable
+                .columns
+                .item(parentColumnIndex);
+            console.log(`parent column: ${parentColumn}`);
+            console.log(spanningCell.parent.constructor.name); // should be "Table"
 
-          return testCell(spanningCell, minWidth, maxWidth);
-        }
+            if ( parentColumnIsEmpty )
+            {
+              const minWidth = 3;
 
-        const minWidth = spanningCell.width;
-        return testCell(spanningCell, minWidth, maxWidth);
+              const bestWidth =
+                binarySearch( minWidth, maxWidth,
+                  (trialWidth) =>
+                  {
+                    parentColumn.width = trialWidth;
+                    app.activeDocument.recompose();
+
+                    if ( spanningCell.overflows ) return false;
+                                                  return true;
+                  }
+                );
+              
+              return;
+            }
+
+            const minWidth =
+              columns
+                .find( column => column.index == parentColumnIndex )
+                .minWidth;
+
+            const bestWidth =
+              binarySearch( minWidth, maxWidth,
+                (trialWidth) =>
+                {
+                  parentColumn.width = trialWidth;
+                  app.activeDocument.recompose();
+
+                  if ( spanningCell.overflows ) return false;
+                                                return true;
+                }
+              );
+
+            parentColumn.width = bestWidth;
+          }
+        );
       }
     );
   };
