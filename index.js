@@ -166,6 +166,18 @@ const autosizeCells =
         parentColumnIndices.forEach(
           (parentColumnIndex) =>
           {
+            const parentColumn =
+              parentTable
+                .columns
+                .item(parentColumnIndex);
+            parentColumn.width = maxWidth;
+            // Sets all the parent columns to maxWidth to start the calc.
+          }
+        );
+
+        parentColumnIndices.forEach(
+          (parentColumnIndex) =>
+          {
             const parentColumnIsEmpty =
               !columns.some( (column) => parentColumnIndex == column.index );
             const parentColumn =
