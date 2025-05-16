@@ -94,13 +94,12 @@ const isTrulyEmpty =
       // cell.contents returns "" if all content is overflowed.
   };
 
-const getParentTable = (cell) => {
-  let parent = cell;
-  while (parent.constructor.name !== "Table") {
-    parent = parent.parent;
-  }
-  return parent;
-};
+const getParentTable =
+  (object) =>
+  {
+    if ( object.constructor.name === "Table" ) return object;
+                                               return getParentTable(object.parent);
+  };
 
 const autosizeCells =
   (cells) =>
