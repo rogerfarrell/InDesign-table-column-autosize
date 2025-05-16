@@ -1,4 +1,14 @@
+///////////////////////////////////////////////////////////////////////////
+//
+//   InDesign table column autosize plugin
+//   (Size table columns to content in InDesign)
+//   Author: Roger Farrell
+//
+///////////////////////////////////////////////////////////////////////////
+
+
 const { app } = require("indesign");
+
 
 module.exports =
   {
@@ -6,15 +16,10 @@ module.exports =
   };
 
 
-///////////////////////////////////////////////////////////////////////////
-// COMMANDS
-///////////////////////////////////////////////////////////////////////////
-
 function autofitColumns()
 {
   try
   {
-    console.log("command called");
     if (app.documents.length === 0)
     {
       showAlert("No document open.");
@@ -24,7 +29,7 @@ function autofitColumns()
     if
     (
       !app.selection.length ||
-      typeof !app.selection[0].cells === "undefined" ||
+      app.selection[0].cells === undefined ||
       app.selection[0].cells.length === 0
     )
     {
@@ -35,7 +40,7 @@ function autofitColumns()
     const selectedCells = app.selection[0].cells;
     const cells = selectedCells.everyItem().getElements();
 
-    autosizeCell(cells);
+    autosizeCells(cells);
   }
   catch (e)
   {
@@ -63,7 +68,8 @@ function showAlert(message)
 
 function binarySearch(min, max, test)
 {
-  console.log(`binarySearch called, min: ${min} max ${max}`);
+  // This is a generic binary search that takes its test
+  // condition function as an argument.
 
   let best = max;
 
@@ -78,95 +84,79 @@ function binarySearch(min, max, test)
       { best = mid; max = mid - 1; }
   }
 
-  console.log("best: " + best);
   return best;
 }
 
 function isTrulyEmpty(cell)
 {
-    // cell.contents returns "" if all content is overflowed
     return cell.contents == "" && !cell.overflows;
+    // cell.contents returns "" if all content is overflowed.
 }
 
-function autosizeCell(cells)
+function testCell(cell, min, max)
 {
-  console.log("autosizeCell called");
+  const bestWidth = binarySearch(
+    min, max, (trialWidth) =>
+                {
+                  cell.width = trialWidth;
+                  app.activeDocument.recompose();
 
-  const startingMaxWidth = 500;
+                  if (cell.overflows) return false;
 
-  let columns = [];
-  let spanningCells = [];
+                  return true;
+                }
+    );
 
-  for (const cell of cells)
+  return bestWidth;
+}
+
+function autosizeCells(cells)
+{
+
+  const maxWidth = 500;
+  const minWidth = 3;
+  // 3 is the minimum allowed for col width.
+  // Setting the minimum lower will result in an error.
+  // (InDesign interprets these units as points.)
+
+  const nonEmptyCells = cells.filter( cell => !isTrulyEmpty(cell) );
+  nonEmptyCells.forEach( cell => cell.parentColumn.autoGrow = false );
+  // autoGrow must be false for cell contents to overflow predictably.
+
+  const columnIndices = [...new Set( nonEmptyCells.map( cell => cell.parentColumn.index ) )];
+  const columns = columnIndices.map( index => ({ index: index, minWidth: minWidth }) );
+
+  const normalCells   = nonEmptyCells.filter( cell => cell.columnSpan == 1 );
+  const spanningCells = nonEmptyCells.filter( cell => cell.columnSpan >  1 );
+  // Spanning (merged) cells are handled separately at the end.
+  // This side-steps complicated column width calculations. 
+
+  for ( const normalCell of normalCells )
   {
-    if ( cell.columnSpan > 1 )
-    {
-      spanningCells.push(cell);
-      continue;
-    }
+    const currentColumn =
+      columns.find( column => column.index == normalCell.parentColumn.index );
+    const minWidth = currentColumn.minWidth;
 
-    console.log(`cell contents: ${cell.contents}`);
+    normalCell.width =
+      testCell(normalCell, minWidth, maxWidth);
 
-    if ( isTrulyEmpty(cell) ) continue;
-
-    const parentColumn = cell.parentColumn;
-    parentColumn.autoGrow = false;
-
-    const matchedColumn = () =>
-      columns.find(column => parentColumn.index == column.index);
-
-    // 3 is the minimum allowed for col width.
-    // Setting the minimum lower will result in an error.
-    if ( !matchedColumn() ) columns.push( { index: parentColumn.index, minWidth: 3 } );
-
-    const startingMinWidth = matchedColumn().minWidth;
-    console.log(`matchedColumn().width: ${matchedColumn().minWidth}`);
-
-    cell.width = startingMaxWidth + "pt";
-
-    const bestWidth =
-      binarySearch(
-        startingMinWidth,
-        startingMaxWidth,
-        (trialWidth) =>
-          {
-            cell.width = trialWidth + "pt";
-            app.activeDocument.recompose();
-
-            if (cell.overflows) return false;
-
-            return true;
-          }
-      );
-
-    cell.width = bestWidth + "pt";
-    matchedColumn().minWidth = bestWidth;
+    if ( normalCell.width >= currentColumn.minWidth )
+      currentColumn.minWidth = normalCell.width;
   }
 
   for ( const spanningCell of spanningCells )
   {
-    if ( isTrulyEmpty(spanningCell) ) continue;
+    const firstParentColumnIndex = spanningCell.parentColumn.index;
+    const lastParentColumnIndex = (firstParentColumnIndex + spanningCell.columnSpan) - 1;
+    const inParentRange =
+      (index) => (index >= firstParentColumnIndex) && (index <= lastParentColumnIndex);
+    // I pulled this out of the filter below to make it read easier.
 
-    const parentColumn = spanningCell.parentColumn;
-    parentColumn.autoGrow = false;
+    const minWidth = columns
+                       .filter( (column) => inParentRange(column.index) )
+                       .reduce( (sum, column) => sum + column.minWidth, 0 );
 
-    const startingMinWidth = spanningCell.width;
-
-    const bestWidth =
-      binarySearch(
-        startingMinWidth,
-        startingMaxWidth,
-        (trialWidth) =>
-          {
-            spanningCell.width = trialWidth + "pt";
-            app.activeDocument.recompose();
-
-            if (spanningCell.overflows) return false;
-
-            return true;
-          }
-      );
-
-    spanningCell.width = bestWidth + "pt";
+    spanningCell.width =
+      testCell(spanningCell, minWidth, maxWidth);
   }
 }
