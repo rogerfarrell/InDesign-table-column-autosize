@@ -56,7 +56,7 @@ const autofitColumns =
 ///////////////////////////////////////////////////////////////////////////
 
 const showAlert =
-  (message) =>
+  message =>
   {
     const dialog = app.dialogs.add();
     const col = dialog.dialogColumns.add();
@@ -88,21 +88,21 @@ const binarySearch =
   };
 
 const isTrulyEmpty =
-  (cell) =>
+  cell =>
   {
       return cell.contents == "" && !cell.overflows;
       // cell.contents returns "" if all content is overflowed.
   };
 
 const getParentTable =
-  (object) =>
+  object =>
   {
     if ( object.constructor.name === "Table" ) return object;
                                                return getParentTable(object.parent);
   };
 
 const autosizeCells =
-  (cells) =>
+  cells =>
   {
     const maxWidth = 500;
     const minWidth = 3;
@@ -114,8 +114,10 @@ const autosizeCells =
     nonEmptyCells.forEach( cell => cell.parentColumn.autoGrow = false );
     // autoGrow must be false for cell contents to overflow predictably.
 
-    const columnIndices = [...new Set( nonEmptyCells.map( cell => cell.parentColumn.index ) )];
-    const columns = columnIndices.map( index => ({ index: index, minWidth: minWidth }) );
+    const columnIndices =
+      [...new Set( nonEmptyCells.map( cell => cell.parentColumn.index ) )];
+    const columns =
+      columnIndices.map( index => ({ index: index, minWidth: minWidth }) );
 
     const normalCells   = nonEmptyCells.filter( cell => cell.columnSpan == 1 );
     const spanningCells = nonEmptyCells.filter( cell => cell.columnSpan >  1 );
@@ -123,7 +125,7 @@ const autosizeCells =
     // This side-steps complicated column width calculations. 
 
     normalCells.forEach(
-      (normalCell) =>
+      normalCell =>
       {
         const currentColumn =
           columns.find( column => column.index == normalCell.parentColumn.index );
@@ -131,13 +133,13 @@ const autosizeCells =
 
         const bestWidth =
           binarySearch( minWidth, maxWidth,
-            (trialWidth) =>
+            trialWidth =>
             {
               normalCell.width = trialWidth;
               app.activeDocument.recompose();
 
               if ( normalCell.overflows ) return false;
-                                    return true;
+                                          return true;
             }
           );
 
@@ -152,7 +154,7 @@ const autosizeCells =
     );
 
     spanningCells.forEach(
-      (spanningCell) =>
+      spanningCell =>
       {
         const firstParentColumnIndex = spanningCell.parentColumn.index;
         const lastParentColumnIndex = (firstParentColumnIndex + spanningCell.columnSpan) - 1;
@@ -163,7 +165,7 @@ const autosizeCells =
         const parentTable = getParentTable(spanningCell);
 
         parentColumnIndices.forEach(
-          (parentColumnIndex) =>
+          parentColumnIndex =>
           {
             const parentColumn =
               parentTable
@@ -175,7 +177,7 @@ const autosizeCells =
         );
 
         parentColumnIndices.forEach(
-          (parentColumnIndex) =>
+          parentColumnIndex =>
           {
             const parentColumnIsEmpty =
               !columns.some( (column) => parentColumnIndex == column.index );
@@ -190,7 +192,7 @@ const autosizeCells =
 
               const bestWidth =
                 binarySearch( minWidth, maxWidth,
-                  (trialWidth) =>
+                  trialWidth =>
                   {
                     parentColumn.width = trialWidth;
                     app.activeDocument.recompose();
@@ -210,7 +212,7 @@ const autosizeCells =
 
             const bestWidth =
               binarySearch( minWidth, maxWidth,
-                (trialWidth) =>
+                trialWidth =>
                 {
                   parentColumn.width = trialWidth;
                   app.activeDocument.recompose();
