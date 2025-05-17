@@ -101,6 +101,24 @@ const getParentTable =
                                                return getParentTable(object.parent);
   };
 
+const resize = 
+  (elementToResize, elementToTest, min, max) =>
+  {
+     const bestWidth =
+       binarySearch( min, max,
+         trialWidth =>
+         {
+           elementToResize.width = trialWidth;
+           app.activeDocument.recompose();
+
+           if ( elementToTest.overflows ) return false;
+                                          return true;
+         }
+       );
+
+       elementToResize.width = bestWidth;
+  };
+
 const autosizeCells =
   cells =>
   {
@@ -131,20 +149,7 @@ const autosizeCells =
           columns.find( column => column.index == normalCell.parentColumn.index );
         const minWidth = currentColumn.minWidth;
 
-        const bestWidth =
-          binarySearch( minWidth, maxWidth,
-            trialWidth =>
-            {
-              normalCell.width = trialWidth;
-              app.activeDocument.recompose();
-
-              if ( normalCell.overflows ) return false;
-                                          return true;
-            }
-          );
-
-        normalCell.width = bestWidth;
-        // This is the final width of the cell.
+        resize(normalCell, normalCell, minWidth, maxWidth);
 
         if ( normalCell.width >= currentColumn.minWidth )
         {
@@ -161,19 +166,17 @@ const autosizeCells =
         const parentColumnIndices =
           Array.from(
             { length: lastParentColumnIndex - firstParentColumnIndex + 1 },
-            (_, i) => firstParentColumnIndex + i);
+            (_, i) => firstParentColumnIndex + i
+          );
         const parentTable = getParentTable(spanningCell);
+        const parentColumnAt = index => parentTable.columns.item(index);
 
-        parentColumnIndices.forEach(
+        parentColumnIndices .forEach(
           parentColumnIndex =>
           {
-            const parentColumn =
-              parentTable
-                .columns
-                .item(parentColumnIndex);
-            parentColumn.width = maxWidth;
-            // Sets all the parent columns to maxWidth to start the calc.
+            parentColumnAt(parentColumnIndex).width = maxWidth;
           }
+            // Sets all the parent columns to maxWidth to start the calc.
         );
 
         parentColumnIndices.forEach(
@@ -181,48 +184,16 @@ const autosizeCells =
           {
             const parentColumnIsEmpty =
               !columns.some( (column) => parentColumnIndex == column.index );
-            const parentColumn =
-              parentTable
-                .columns
-                .item(parentColumnIndex);
-
-            if ( parentColumnIsEmpty )
-            {
-              const minWidth = 3;
-
-              const bestWidth =
-                binarySearch( minWidth, maxWidth,
-                  trialWidth =>
-                  {
-                    parentColumn.width = trialWidth;
-                    app.activeDocument.recompose();
-
-                    if ( spanningCell.overflows ) return false;
-                                                  return true;
-                  }
-                );
-              
-              return;
-            }
 
             const minWidth =
-              columns
-                .find( column => column.index == parentColumnIndex )
-                .minWidth;
+              parentColumnIsEmpty
+                ? 3
+                : columns
+                    .find( column => column.index == parentColumnIndex )
+                    .minWidth;
+            //TODO I would like to replace this with something more elegant.
 
-            const bestWidth =
-              binarySearch( minWidth, maxWidth,
-                trialWidth =>
-                {
-                  parentColumn.width = trialWidth;
-                  app.activeDocument.recompose();
-
-                  if ( spanningCell.overflows ) return false;
-                                                return true;
-                }
-              );
-
-            parentColumn.width = bestWidth;
+            resize(parentColumnAt(parentColumnIndex), spanningCell, minWidth, maxWidth);
           }
         );
       }
