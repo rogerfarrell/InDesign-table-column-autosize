@@ -21,22 +21,8 @@ const autofitColumns =
   {
     try
     {
-      if (app.documents.length === 0)
-      {
-        showAlert("No document open.");
-        return;
-      }
-
-      const noCellSelected =
-        !app.selection.length
-        || app.selection[0].cells === undefined
-        || app.selection[0].cells.length === 0;
-
-      if ( noCellSelected )
-      {
-        showAlert("Please select one or more table cells.");
-        return;
-      }
+      if ( invalidSelection(app) )
+        throw new Error("Please select one or more table cells.");
 
       const selectedCells = app.selection[0].cells;
       const cells = selectedCells.everyItem().getElements();
@@ -46,7 +32,7 @@ const autofitColumns =
     catch (e)
     {
       console.log(e);
-      showAlert("An error occurred: " + e.message);
+      showAlert(`Error: ${e.message}`);
     }
   };
 
@@ -54,6 +40,15 @@ const autofitColumns =
 ///////////////////////////////////////////////////////////////////////////
 // HELPER FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////
+
+const invalidSelection =
+  app =>
+  {
+    return app.documents.length === 0
+           || !app.selection.length
+           || app.selection[0].cells === undefined
+           || app.selection[0].cells.length === 0;
+  };
 
 const showAlert =
   message =>
