@@ -43,7 +43,9 @@ const autofitColumns =
             ];
 
           const bestWidth =
-            binarySearch( minColumnWidth, maxColumnWidth,
+            binarySearch(
+              minColumnWidth,
+              maxColumnWidth,
               trialWidth =>
               {
                 column.width = trialWidth;
@@ -82,11 +84,11 @@ const invalidSelection =
 const showAlert =
   message =>
   {
-    const dialog = app.dialogs.add();
-    const col = dialog.dialogColumns.add();
-    const colText = col.staticTexts.add();
+    const dialog        = app.dialogs.add();
+    const col           = dialog.dialogColumns.add();
+    const colText       = col.staticTexts.add();
     colText.staticLabel = message;
-    dialog.canCancel = false;
+    dialog.canCancel    = false;
     dialog.show();
     dialog.destroy();
     return;
@@ -97,17 +99,17 @@ const getSelectedColumns =
   {
     const selectedColumns = selection.columns.everyItem().getElements();
 
-    const table = getParentTable( selection.columns.firstItem() );
-    const lastSelectedColumn = selection.columns.lastItem();
-    const lastColumnCells = lastSelectedColumn.cells.everyItem().getElements();
-    const maxLastColumnSpan = lastColumnCells.reduce( (max, cell) => Math.max(max, cell.columnSpan), 1);
+    const table                  = getParentTable( selection.columns.firstItem() );
+    const lastSelectedColumn     = selection.columns.lastItem();
+    const lastColumnCells        = lastSelectedColumn.cells.everyItem().getElements();
+    const maxLastColumnSpan      = lastColumnCells.reduce( (max, cell) => Math.max(max, cell.columnSpan), 1);
     const lastSpannedColumnIndex = (lastSelectedColumn.index + maxLastColumnSpan) - 1;
-    const extraSpannedColumns =
-      table.columns.everyItem().getElements()
-        .filter(
-          column => column.index > lastSelectedColumn.index
-                    && column.index <= lastSpannedColumnIndex
-        );
+    const extraSpannedColumns    = table.columns.everyItem().getElements()
+                                     .filter(
+                                       column =>
+                                         column.index > lastSelectedColumn.index
+                                         && column.index <= lastSpannedColumnIndex
+                                     );
 
     return [...selectedColumns, ...extraSpannedColumns];
   };
