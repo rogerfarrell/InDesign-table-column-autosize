@@ -42,13 +42,15 @@ const autofitColumns =
                 .filter( cell => ((cell.parentColumn.index + cell.columnSpan) - 1) == column.index )
             ];
 
+          column.autoGrow = false;
+
           const bestWidth =
             binarySearch(
               minColumnWidth,
               maxColumnWidth,
               trialWidth =>
               {
-                column.width = trialWidth;
+                column.width = trialWidth + "pt";
                 app.activeDocument.recompose();
 
                 if ( cellsOverflow(cells) ) return false;
@@ -56,7 +58,7 @@ const autofitColumns =
               }
             );
 
-          column.width = bestWidth;
+          column.width = bestWidth + "pt";
         }
       );
     }
