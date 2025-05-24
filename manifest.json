@@ -1,7 +1,7 @@
 {
   "id": "87ac7562",
   "name": "Table Column Autofit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "host": [
     {
@@ -15,6 +15,27 @@
       "type": "command",
       "id": "autofitColumns",
       "label": "Autofit Columns"
+    }
+  ],
+  "icons": [
+    {
+      "width": 24,
+      "height": 24,
+      "path": "icons/icon-dark.svg",
+      "theme": [
+        "darkest",
+        "dark",
+        "medium"
+      ]
+    },
+    {
+      "width": 24,
+      "height": 24,
+      "path": "icons/icon-light.svg",
+      "theme": [
+        "light",
+        "lightest"
+      ]
     }
   ]
 }
