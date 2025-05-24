@@ -51,7 +51,7 @@ const autosizeColumns =
               trialWidth =>
               {
                 column.width = trialWidth + "pt";
-                app.activeDocument.recompose();
+                column.recompose();
 
                 if ( cellsOverflow(cells) ) return false;
                                             return true;
