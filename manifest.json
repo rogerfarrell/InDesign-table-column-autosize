@@ -1,6 +1,6 @@
 {
   "id": "87ac7562",
-  "name": "Table Column Autofit",
+  "name": "Table Column Autosize",
   "version": "1.0.1",
   "main": "index.js",
   "host": [
@@ -13,8 +13,8 @@
   "entrypoints": [
     {
       "type": "command",
-      "id": "autofitColumns",
-      "label": "Autofit Columns"
+      "id": "autosizeColumns",
+      "label": "Autosize Columns"
     }
   ],
   "icons": [

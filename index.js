@@ -12,11 +12,11 @@ const { app } = require("indesign");
 
 module.exports =
   {
-    commands: { autofitColumns: () => autofitColumns() }
+    commands: { autosizeColumns: () => autosizeColumns() }
   };
 
 
-const autofitColumns =
+const autosizeColumns =
   () =>
   {
     try
