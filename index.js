@@ -104,7 +104,7 @@ const getSelectedColumns =
 
     const table                  = getParentTable( selection.columns.firstItem() );
     const lastSelectedColumn     = selection.columns.lastItem();
-    const lastColumnCells        = selectedcells.filter( cell => cell.parentColumnindex == lastSelectedColumn.index );
+    const lastColumnCells        = selectedCells.filter( cell => cell.parentColumnindex == lastSelectedColumn.index );
     const maxLastColumnSpan      = lastColumnCells.reduce( (max, cell) => Math.max(max, cell.columnSpan), 1);
     const lastSpannedColumnIndex = (lastSelectedColumn.index + maxLastColumnSpan) - 1;
     const extraSpannedColumns    = table.columns.everyItem().getElements()
